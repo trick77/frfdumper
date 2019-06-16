@@ -10,6 +10,11 @@ import java.util.ArrayList;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+/**
+ * Decrypts an *.frf binary and displays (some of) its Open Data Diagnostics (ODX) data. The containing ODX binary flash data
+ * will not be decrypted, since the used algorithms and encryption keys vary and aren't well known.
+ *
+ */
 public class FrfInspector {
 
     private final static int BUFFER_SIZE = 2048;
