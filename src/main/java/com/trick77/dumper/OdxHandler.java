@@ -1,23 +1,22 @@
-package com.trick77.inspector;
+package com.trick77.dumper;
 
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-import java.util.ArrayList;
 import java.util.Stack;
 
 public class OdxHandler extends DefaultHandler {
 
-    public Container container = new Container();
-
-    public Stack<String> elementStack = new Stack<String>();
-
-    public ArrayList<Block> blocks = new ArrayList<Block>();
-
-    public ArrayList<FlashData> flashDatas = new ArrayList<FlashData>();
+    private Stack<String> elementStack = new Stack<String>();
 
     private Stack<Object> objectStack  = new Stack<Object>();
+
+    private OdxData odxData = new OdxData();
+
+    public OdxData getOdxData() {
+        return odxData;
+    }
 
     public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
         elementStack.push(qName);
@@ -26,7 +25,7 @@ public class OdxHandler extends DefaultHandler {
             Block block = new Block();
             block.setId(attributes.getValue(0));
             block.setType(attributes.getValue(1));
-            blocks.add(block);
+            odxData.addBlock(block);
             objectStack.push(block);
         }
 
@@ -47,7 +46,7 @@ public class OdxHandler extends DefaultHandler {
             } else {
                 flashData.setId(attributes.getValue(0));
             }
-            flashDatas.add(flashData);
+            odxData.addFlashData(flashData);
             objectStack.push(flashData);
         }
 
@@ -65,7 +64,7 @@ public class OdxHandler extends DefaultHandler {
     public void characters(char ch[], int start, int length)
             throws SAXException {
         if (elementStack.size() > 1 && currentElementParent().equals("FLASHDATA") && currentElement().equals("DATA")) {
-            // Ignore all data, we can't decrypt it anyway
+            // Ignore all data, we can't dump it anyway
             return;
         }
 
@@ -75,23 +74,23 @@ public class OdxHandler extends DefaultHandler {
         }
 
         if (currentElementParent().equals("FLASH") && currentElement().equals("LONG-NAME")) {
-            container.setName(value);
+            odxData.getContainer().setName(value);
         }
 
         if (currentElementParent().equals("DOC-REVISION")) {
             if (currentElement().equals("DATE")) {
-                container.setDate(value);
+                odxData.getContainer().setDate(value);
             }
             if (currentElement().equals("REVISION-LABEL")) {
-                container.setRevision(value);
+                odxData.getContainer().setRevision(value);
             }
         }
 
         if (currentElementParent().equals("IDENT-VALUES") && currentElement().equals("IDENT-VALUE")) {
             if (isNumeric(value)) {
-                container.addVersionIdent(value);
+                odxData.getContainer().addVersionIdent(value);
             } else {
-                container.addNameIdent(value);
+                odxData.getContainer().addNameIdent(value);
             }
         }
 
@@ -101,7 +100,7 @@ public class OdxHandler extends DefaultHandler {
                 security.setMethod(value);
             } else if (currentElement().equals("FW-SIGNATURE")) {
                 security.setSignature(value);
-                container.addSecurity(security);
+                odxData.getContainer().addSecurity(security);
             }
         }
 

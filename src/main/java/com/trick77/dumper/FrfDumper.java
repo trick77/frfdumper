@@ -1,4 +1,4 @@
-package com.trick77.inspector;
+package com.trick77.dumper;
 
 
 import org.apache.commons.io.IOUtils;
@@ -15,52 +15,52 @@ import java.util.zip.ZipInputStream;
  * will not be decrypted, since the used algorithms and encryption keys vary and aren't well known.
  *
  */
-public class FrfInspector {
+public class FrfDumper {
 
     private final static int BUFFER_SIZE = 2048;
     private final static String KEY_RESOURCE_NAME = "the.key";
 
-    private byte[] getEncryptionKey() throws Exception {
-        InputStream is = getClass().getClassLoader().getResourceAsStream(KEY_RESOURCE_NAME);
-        byte[] key = IOUtils.toByteArray(is);
-        is.close();
-        return key;
-    }
-
-    public void decrypt(final String frfFileName) throws Exception {
-        byte[] key = getEncryptionKey();
+    public void dump(final String frfFileName) throws Exception {
+        byte[] key = getKey();
+        System.out.println("* decrypting " + frfFileName + "...");
         File decryptedTmpFile = createDecryptedTmpFile(frfFileName, key);
+        System.out.println("* decompressing " + decryptedTmpFile.getPath() + "...");
         File decompressedTmpFile = getDecompressedTmpFile(decryptedTmpFile);
-        parseXml(decompressedTmpFile);
+
+        System.out.println("* dumping odx data:");
+        dumpOdxData(decompressedTmpFile);
         decompressedTmpFile.delete();
     }
 
-    private void parseXml(final File decompressedTmpFile) throws Exception {
+    private void dumpOdxData(final File decompressedTmpFile) throws Exception {
         SAXParserFactory factory = SAXParserFactory.newInstance();
         SAXParser saxParser = factory.newSAXParser();
         OdxHandler handler = new OdxHandler();
         saxParser.parse(decompressedTmpFile, handler);
-        Container container = handler.container;
+        Container container = handler.getOdxData().getContainer();
 
         String longName = container.getName();
         String shortName = Container.getNameWithoutRevision(longName, container.getRevision());
-        System.out.println("name=" + Container.getNameWithoutSpaces(shortName) + ", revision=" + container.getRevision());
-        System.out.println("date=" + container.getDate());
+        System.out.println("   name=" + Container.getNameWithoutSpaces(shortName) + ", revision=" + container.getRevision());
+        System.out.println("   date=" + container.getDate());
 
-        dumpStringArray("name-idents", container.getNameIdents());
-        dumpStringArray("version-idents", container.getVersionIdents());
+        dumpStringArray("   name-idents", container.getNameIdents());
+        dumpStringArray("   version-idents", container.getVersionIdents());
 
         for (Security security: container.getSecuritys()) {
             if (security.getMethod().equalsIgnoreCase("sa2")) {
-                System.out.println(security.getMethod().toLowerCase() + "=" + security.getSignature().toLowerCase());
+                System.out.println("   " + security.getMethod().toLowerCase() + "=" + security.getSignature().toLowerCase());
+            } else if (security.getMethod().equalsIgnoreCase("a2l")) {
+                System.out.println("   " + security.getMethod().toLowerCase() + "=" + security.getSignature().toLowerCase());
             }
+
         }
 
-        for (Block block: handler.blocks) {
+        for (Block block: handler.getOdxData().getBlocks()) {
             String id = null;
             String name = null;
             String method = null;
-            for (FlashData flashData: handler.flashDatas) {
+            for (FlashData flashData: handler.getOdxData().getFlashDatas()) {
                 if (flashData.getName().equals(block.getName())) {
                     id = flashData.getId();
                     name = flashData.getName();
@@ -69,11 +69,11 @@ public class FrfInspector {
                 }
             }
 
-            System.out.print("id=" + id);
+            System.out.print("   id=" + id);
             System.out.print(", name=" + name);
             System.out.print(", method=" + method);
-            System.out.print(", compressedSize=" + block.getCompressedSize() + " bytes");
-            System.out.print(", uncompressedSize=" + block.getUncompressedSize() + " bytes");
+            System.out.print(", compressed size=" + block.getCompressedSize() + " bytes");
+            System.out.print(", uncompressed size=" + block.getUncompressedSize() + " bytes");
             System.out.println();
         }
     }
@@ -113,7 +113,6 @@ public class FrfInspector {
         finally {
             zis.close();
         }
-        // Deleted the temporary decrypted file
         decryptedFile.delete();
         return decompressedFile;
     }
@@ -147,16 +146,23 @@ public class FrfInspector {
         return tmpFile;
     }
 
+    private byte[] getKey() throws Exception {
+        InputStream is = getClass().getClassLoader().getResourceAsStream(KEY_RESOURCE_NAME);
+        byte[] key = IOUtils.toByteArray(is);
+        is.close();
+        return key;
+    }
+
     public static void main(final String[] args) throws Exception {
         System.out.println();
-        System.out.println("frf inspector v0.1");
+        System.out.println("frf dumper v0.2");
         System.out.println("==================");
         if (args.length != 1) {
             System.err.println("Missing argument: filename");
             System.exit(1);
         } else {
-            FrfInspector inspector = new FrfInspector();
-            inspector.decrypt(args[0]);
+            FrfDumper dumper = new FrfDumper();
+            dumper.dump(args[0]);
         }
     }
 }

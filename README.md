@@ -4,7 +4,7 @@ Decrypts an *.frf binary and displays (some of) its Open Data Diagnostics (ODX) 
  will **not** be decrypted, since the used algorithms and encryption keys vary and aren't well known.
 
 ```
-frf inspector v0.1
+frf dumper v0.2
 ==================
 name=4G0907589F, revision=0008
 date=2018-02-28T15:23:10
@@ -28,4 +28,4 @@ mvn package
 
 ## How to run it
 
-java -jar target/inspector-0.1-SNAPSHOT-jar-with-dependencies.jar some.frf
+java -jar target/frfdumper-jar-with-dependencies.jar some.frf

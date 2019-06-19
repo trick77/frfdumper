@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>trick77</groupId>
-    <artifactId>inspector</artifactId>
+    <artifactId>dumper</artifactId>
     <version>0.1-SNAPSHOT</version>
 
     <properties>
@@ -20,7 +20,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.trick77.inspector.FrfInspector</mainClass>
+                            <mainClass>com.trick77.dumper.FrfDumper</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
@@ -38,6 +38,7 @@
                 </executions>
             </plugin>
         </plugins>
+        <finalName>frfdumper</finalName>
     </build>
 
     <dependencies>

@@ -1,4 +1,4 @@
-package com.trick77.inspector;
+package com.trick77.dumper;
 
 public class Security {
     private String method;
