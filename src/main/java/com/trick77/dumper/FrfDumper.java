@@ -1,6 +1,8 @@
 package com.trick77.dumper;
 
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 
 import javax.xml.parsers.SAXParser;
@@ -20,15 +22,22 @@ public class FrfDumper {
     private final static int BUFFER_SIZE = 2048;
     private final static String KEY_RESOURCE_NAME = "the.key";
 
-    public void dump(final String frfFileName) throws Exception {
+    public void dump(final String frfFileName, boolean keepOdxFile) throws Exception {
+        File frfFile = new File(frfFileName);
         byte[] key = getKey();
-        System.out.println("* decrypting " + frfFileName + "...");
-        File decryptedTmpFile = createDecryptedTmpFile(frfFileName, key);
+        System.out.println("* decrypting " + frfFile.getPath() + "...");
+        File decryptedTmpFile = createDecryptedFile(frfFile, key);
         System.out.println("* decompressing " + decryptedTmpFile.getPath() + "...");
-        File decompressedTmpFile = getDecompressedTmpFile(decryptedTmpFile);
+        File decompressedTmpFile = getDecompressedFile(decryptedTmpFile);
 
         System.out.println("* dumping odx data:");
         dumpOdxData(decompressedTmpFile);
+        if (keepOdxFile) {
+            String odxFileName = FilenameUtils.removeExtension(frfFileName);
+            odxFileName += ".odx";
+            System.out.println("* exporting odx file to " + odxFileName);
+            FileUtils.copyFile(decompressedTmpFile, new File(odxFileName));
+        }
         decompressedTmpFile.delete();
     }
 
@@ -50,7 +59,7 @@ public class FrfDumper {
         for (Security security: container.getSecuritys()) {
             if (security.getMethod().equalsIgnoreCase("sa2")) {
                 System.out.println("   " + security.getMethod().toLowerCase() + "=" + security.getSignature().toLowerCase());
-            } else if (security.getMethod().equalsIgnoreCase("a2l")) {
+            } else if (security.getMethod().equalsIgnoreCase("alfid")) {
                 System.out.println("   " + security.getMethod().toLowerCase() + "=" + security.getSignature().toLowerCase());
             }
 
@@ -70,12 +79,12 @@ public class FrfDumper {
             }
 
             System.out.print("   id=" + id);
-            System.out.print(", name=" + name);
-            System.out.print(", method=" + method);
+            System.out.print(", encrypt-compress-method=" + method);
             System.out.print(", compressed size=" + block.getCompressedSize() + " bytes");
             System.out.print(", uncompressed size=" + block.getUncompressedSize() + " bytes");
             System.out.println();
         }
+        System.out.println();
     }
 
     private void dumpStringArray(String title, ArrayList<String> list) {
@@ -94,7 +103,7 @@ public class FrfDumper {
     /**
      * Decompress the contents of the decrypted file and save it to a temporary file.
      */
-    private File getDecompressedTmpFile(File decryptedFile) throws IOException {
+    private File getDecompressedFile(File decryptedFile) throws IOException {
         ZipInputStream zis = new ZipInputStream(new FileInputStream(decryptedFile.getPath()));
         byte[] buffer = new byte[BUFFER_SIZE];
         File decompressedFile = null;
@@ -121,12 +130,12 @@ public class FrfDumper {
     /**
      * Creates the decrypted, compressed temporary file.
      */
-    private File createDecryptedTmpFile(final String inputFileName, final byte[] key) throws IOException {
+    private File createDecryptedFile(final File decompressedFile, final byte[] key) throws IOException {
         int seed0 = 0;
         int seed1 = 1;
         File tmpFile = File.createTempFile("decrypted-", ".tmp");
         BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(tmpFile.getPath()));
-        try(InputStream is = new FileInputStream(inputFileName)) {
+        try(InputStream is = new FileInputStream(decompressedFile)) {
             BufferedInputStream bis = IOUtils.buffer(is, BUFFER_SIZE);
 
             // Courtesy of tmbinc
@@ -153,16 +162,40 @@ public class FrfDumper {
         return key;
     }
 
+    private static String getStringArgument(final String[] args, final String argumentName) {
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equalsIgnoreCase(argumentName)) {
+                if (i < args.length) {
+                    return args[i + 1];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static boolean getBooleanArgument(final String[] args, final String argumentName) {
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equalsIgnoreCase(argumentName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static void main(final String[] args) throws Exception {
         System.out.println();
         System.out.println("frf dumper v0.2");
         System.out.println("==================");
-        if (args.length != 1) {
-            System.err.println("Missing argument: filename");
+        String fileName = getStringArgument(args, "--frf");
+        boolean keepOdxFile = getBooleanArgument(args, "--keepodx");
+        boolean decompressFlashData = getBooleanArgument(args,"--decompress-flashdata");
+        if (fileName == null || fileName.length() < 1) {
+            System.err.println("usage: frfdumper --frf filename [--keepodx] [--decompress-flashdata]");
             System.exit(1);
         } else {
             FrfDumper dumper = new FrfDumper();
-            dumper.dump(args[0]);
+            dumper.dump(fileName, keepOdxFile);
         }
     }
 }
