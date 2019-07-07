@@ -1,6 +1,6 @@
 # FRF Dumper
 
-Unpacks an *.frf binary and displays (some of) its Open Data Exchange (ODX) diagnostics data. The binary ODX flash data
+Unpacks an *.frf binary and displays (some of) its Open Data Exchange (ODX) diagnostics data. The binary ODX flash payloads
  will **not** be decrypted, since the used encryption methods and keys vary and aren't well known.
 
 ```
