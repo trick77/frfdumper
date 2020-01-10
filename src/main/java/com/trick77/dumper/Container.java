@@ -85,10 +85,14 @@ public class Container {
     }
 
     public static String getNameWithoutRevision(final String name, final String revision) {
-        String nameWithoutRevision = null;
-        if (name != null && name.length() > 0 && revision != null && revision.length() > 0) {
-            if (name.endsWith(revision)) {
-                nameWithoutRevision = name.substring(0, name.length() - revision.length()).trim();
+        String nameWithoutRevision = "";
+        if (name == null || revision == null) {
+            return "(null)";
+        }
+        String cleanedLongName = name.replaceAll("_[^_]+$", "");
+        if (cleanedLongName.length() > 0 && revision.length() > 0) {
+            if (cleanedLongName.endsWith(revision)) {
+                nameWithoutRevision = cleanedLongName.substring(0, cleanedLongName.length() - revision.length()).trim();
             }
         }
         if (nameWithoutRevision.endsWith("_")) {
