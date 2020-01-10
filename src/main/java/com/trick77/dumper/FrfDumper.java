@@ -49,8 +49,11 @@ public class FrfDumper {
         Container container = handler.getOdxData().getContainer();
 
         String longName = container.getName();
-        String shortName = Container.getNameWithoutRevision(longName, container.getRevision());
-        System.out.println("   name=" + Container.getNameWithoutSpaces(shortName) + ", revision=" + container.getRevision());
+        String shortName = Container.getNameWithoutRevision(
+                Container.getNameWithoutSpaces(longName),
+                container.getRevision()
+        );
+        System.out.println("   name=" + shortName + ", revision=" + container.getRevision());
         System.out.println("   date=" + container.getDate());
 
         dumpStringArray("   name-idents", container.getNameIdents());
